@@ -22,7 +22,8 @@ public class PacketQuickStartCocoonStageScRsp : BasePacket
         var rsp = new QuickStartCocoonStageScRsp
         {
             CocoonId = (uint)cocoonId,
-            CocoonChallengeTimes = (uint)wave,
+            Wave = (uint)wave,
+            IHIAFPLIPEK = (uint)wave,
             BattleInfo = battle.ToProto()
         };
 

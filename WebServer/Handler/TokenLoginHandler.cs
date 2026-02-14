@@ -11,7 +11,7 @@ public class TokenLoginHandler
     {
         var account = AccountData.GetAccountByUid(int.Parse(uid));
         var res = new LoginResJson();
-        if (account == null || !string.Equals(account.DispatchToken, token, StringComparison.Ordinal))
+        if (account == null || !account?.DispatchToken?.Equals(token) == true)
         {
             res.retcode = -201;
             res.message = "Game account cache information error";
@@ -19,7 +19,7 @@ public class TokenLoginHandler
         else
         {
             res.message = "OK";
-            res.data = new VerifyData(account.Uid.ToString(), account.Username + "@HyacineLover.sr", token);
+            res.data = new VerifyData(account!.Uid.ToString(), account.Username + "@egglink.me", token);
             res.data.account.name = account.Username;
             res.data.account.is_email_verify = "1";
         }

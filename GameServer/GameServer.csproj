@@ -33,8 +33,6 @@
     <Compile Remove="Server\Packet\Send\Match\**\*.cs" />
     <Compile Remove="Server\Packet\Recv\RechargeGift\**\*.cs" />
     <Compile Remove="Server\Packet\Send\RechargeGift\**\*.cs" />
-    <Compile Remove="Server\Packet\Recv\Adventure\HandlerQuickStartCocoonStageCsReq.cs" />
-    <Compile Remove="Server\Packet\Send\Adventure\PacketQuickStartCocoonStageScRsp.cs" />
     <Compile Remove="Server\Packet\Recv\Gacha\HandlerSetGachaDecideItemCsReq.cs" />
     <Compile Remove="Server\Packet\Send\Gacha\PacketSetGachaDecideItemScRsp.cs" />
     <Compile Remove="Server\Packet\Recv\Item\HandlerDiscardRelicCsReq.cs" />
