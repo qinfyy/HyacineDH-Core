@@ -54,7 +54,7 @@ public class ChallengeManager(PlayerInstance player) : BasePlayerManager(player)
         var instance = CreateLegacyInstance(excel, 1, ExtraLineupType.LineupChallenge);
 
         ChallengeInstance = instance;
-        await Player.LineupManager!.SetExtraLineup((ExtraLineupType)instance.GetCurrentExtraLineupType());
+        await Player.LineupManager!.SetExtraLineup((ExtraLineupType)instance.GetCurrentExtraLineupType(), notify: false);
 
         if (!await TryEnterChallengeScene(excel.MapEntranceID, false))
         {
@@ -125,7 +125,7 @@ public class ChallengeManager(PlayerInstance player) : BasePlayerManager(player)
         SetPartialBuff(instance, buffId, isFirstHalf);
 
         ChallengeInstance = instance;
-        await Player.LineupManager!.SetExtraLineup(lineupType);
+        await Player.LineupManager!.SetExtraLineup(lineupType, notify: false);
 
         var mapEntranceId = isFirstHalf
             ? excel.MapEntranceID

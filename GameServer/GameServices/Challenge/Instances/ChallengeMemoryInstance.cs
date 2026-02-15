@@ -194,38 +194,48 @@ public class ChallengeMemoryInstance(PlayerInstance player, ChallengeDataPb data
         }
         else
         {
-            // Increment and reset stage
-            Data.Memory.CurrentStage++;
-            // Unload scene group for stage 1
-            await Player.SceneInstance!.EntityLoader!.UnloadGroup(Config.MazeGroupID1);
-
-            // Load scene group for stage 2
-            await Player.SceneInstance!.EntityLoader!.LoadGroup(Config.MazeGroupID2);
-
-            // Change player line up
-            SetCurrentExtraLineup(ExtraLineupType.LineupChallenge2);
-            await Player.LineupManager!.SetExtraLineup((ExtraLineupType)GetCurrentExtraLineupType());
-            await Player.SendPacket(new PacketChallengeLineupNotify((ExtraLineupType)Data.Memory.CurrentExtraLineup));
-            await Player.SceneInstance!.SyncLineup();
-
-            Data.Memory.SavedMp = (uint)Player.LineupManager.GetCurLineup()!.Mp;
-
-            // Move player
-            if (Config.MapEntranceID2 != 0 && Config.MapEntranceID2 != Config.MapEntranceID)
-            {
-                await Player.EnterScene(Config.MapEntranceID2, 0, true);
-                Data.Memory.StartPos = Player.Data.Pos!.ToVector();
-                Data.Memory.StartRot = Player.Data.Rot!.ToVector();
-                await Player.SceneInstance!.EntityLoader!.UnloadGroup(Config.MazeGroupID1);
-                await Player.SceneInstance!.EntityLoader!.LoadGroup(Config.MazeGroupID2);
-            }
-            else
-            {
-                await Player.MoveTo(Data.Memory.StartPos.ToPosition(), Data.Memory.StartRot.ToPosition());
-            }
-
-            Player.ChallengeManager!.SaveInstance(this);
+            // MOC behavior: silently switch to stage 2.
+            await NextPhase();
         }
+    }
+
+    public async ValueTask<bool> NextPhase()
+    {
+        if (Config.StageNum < 2) return false;
+
+        if (Data.Memory.CurrentStage < 2)
+            Data.Memory.CurrentStage++;
+
+        SetCurrentExtraLineup(ExtraLineupType.LineupChallenge2);
+        await Player.LineupManager!.SetExtraLineup((ExtraLineupType)GetCurrentExtraLineupType(), notify: false);
+        await Player.SendPacket(new PacketChallengeLineupNotify((ExtraLineupType)Data.Memory.CurrentExtraLineup));
+        await Player.SceneInstance!.SyncLineup();
+
+        Data.Memory.SavedMp = (uint)Player.LineupManager.GetCurLineup()!.Mp;
+
+        var stage2EntryId = Config.MapEntranceID2 != 0 ? Config.MapEntranceID2 : Config.MapEntranceID;
+        var sameEntry = stage2EntryId == Player.Data.EntryId;
+
+        if (!sameEntry && stage2EntryId != 0)
+        {
+            await Player.EnterScene(stage2EntryId, 0, false);
+            Data.Memory.StartPos = Player.Data.Pos!.ToVector();
+            Data.Memory.StartRot = Player.Data.Rot!.ToVector();
+        }
+        else if (Config.MapEntranceID2 == 0)
+        {
+            await Player.MoveTo(Data.Memory.StartPos.ToPosition(), Data.Memory.StartRot.ToPosition());
+        }
+
+        var needClientRefresh = sameEntry;
+        if (Config.MazeGroupID1 != 0 && Config.MazeGroupID1 != Config.MazeGroupID2)
+            await Player.SceneInstance!.EntityLoader!.UnloadGroup(Config.MazeGroupID1, sendPacket: needClientRefresh);
+
+        if (Config.MazeGroupID2 != 0)
+            await Player.SceneInstance!.EntityLoader!.LoadGroup(Config.MazeGroupID2, sendPacket: needClientRefresh);
+
+        Player.ChallengeManager!.SaveInstance(this);
+        return true;
     }
 
     #endregion

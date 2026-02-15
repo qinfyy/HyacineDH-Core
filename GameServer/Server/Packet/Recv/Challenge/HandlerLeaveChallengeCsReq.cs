@@ -1,6 +1,8 @@
-﻿using HyacineCore.Server.Kcp;
+using HyacineCore.Server.Kcp;
 using HyacineCore.Server.Proto;
 using HyacineCore.Server.Util;
+using HyacineCore.Server.GameServer.Server.Packet.Send.Challenge;
+using HyacineCore.Server.GameServer.Server.Packet.Send.Lineup;
 using static HyacineCore.Server.GameServer.Plugin.Event.PluginEvent;
 
 namespace HyacineCore.Server.GameServer.Server.Packet.Recv.Challenge;
@@ -18,7 +20,7 @@ public class HandlerLeaveChallengeCsReq : Handler
             // As of 1.5.0, the server now has to handle the player leaving battle too
             await player.ForceQuitBattle();
 
-            // Reset lineup
+            // Reset challenge lineups
             player.LineupManager!.SetExtraLineup(ExtraLineupType.LineupChallenge, []);
             player.LineupManager.SetExtraLineup(ExtraLineupType.LineupChallenge2, []);
 
@@ -27,9 +29,23 @@ public class HandlerLeaveChallengeCsReq : Handler
             player.ChallengeManager!.ChallengeInstance = null;
             player.ChallengeManager!.ClearInstance();
 
-            // Leave scene
-            player.LineupManager.SetExtraLineup(ExtraLineupType.LineupNone, []);
-            // Heal avatars (temproary solution)
+            // Force exit challenge lineup mode.
+            await player.LineupManager.SetExtraLineup(ExtraLineupType.LineupNone, notify: false);
+            await player.SendPacket(new PacketChallengeLineupNotify(ExtraLineupType.LineupNone));
+
+            // Ensure current lineup points to a usable normal lineup.
+            if (player.LineupManager.GetCurLineup()?.IsExtraLineup() == true ||
+                player.LineupManager.GetCurLineup()?.BaseAvatars?.Count == 0)
+            {
+                var allLineups = player.LineupManager.GetAllLineup();
+                var normalIndex = allLineups.FindIndex(x => x.LineupType == 0 && x.BaseAvatars is { Count: > 0 });
+                if (normalIndex >= 0) await player.LineupManager.SetCurLineup(normalIndex);
+            }
+
+            if (player.LineupManager.GetCurLineup() != null)
+                await player.SendPacket(new PacketSyncLineupNotify(player.LineupManager.GetCurLineup()!));
+
+            // Heal avatars (temporary solution)
             foreach (var avatar in player.LineupManager.GetCurLineup()!.AvatarData!.FormalAvatars)
                 avatar.CurrentHp = 10000;
 

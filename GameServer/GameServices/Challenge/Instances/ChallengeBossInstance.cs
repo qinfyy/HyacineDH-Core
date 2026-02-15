@@ -239,7 +239,7 @@ public class ChallengeBossInstance(PlayerInstance player, ChallengeDataPb data)
                     Data.Boss.CurStatus = (int)ChallengeStatus.ChallengeFailed;
 
                     // Send challenge result data
-                    await Player.SendPacket(new PacketChallengeBossPhaseSettleNotify(this));
+                    await Player.SendPacket(new PacketChallengeBossPhaseSettleNotify(this, isReward: true));
                 }
 
                 break;
@@ -280,7 +280,8 @@ public class ChallengeBossInstance(PlayerInstance player, ChallengeDataPb data)
             Player.ChallengeManager!.AddHistory((int)Data.Boss.ChallengeMazeId, (int)GetStars(), GetTotalScore());
 
             // Send challenge result data
-            await Player.SendPacket(new PacketChallengeBossPhaseSettleNotify(this, req.Stt.BattleTargetInfo[1]));
+            await Player.SendPacket(new PacketChallengeBossPhaseSettleNotify(this, req.Stt.BattleTargetInfo[1],
+                isReward: true));
 
             // Call MissionManager
             await Player.MissionManager!.HandleFinishType(MissionFinishTypeEnum.ChallengeFinish, this);
@@ -297,7 +298,8 @@ public class ChallengeBossInstance(PlayerInstance player, ChallengeDataPb data)
         }
         else
         {
-            await Player.SendPacket(new PacketChallengeBossPhaseSettleNotify(this, req.Stt.BattleTargetInfo[1]));
+            await Player.SendPacket(new PacketChallengeBossPhaseSettleNotify(this, req.Stt.BattleTargetInfo[1],
+                isReward: false));
         }
     }
 
@@ -323,13 +325,14 @@ public class ChallengeBossInstance(PlayerInstance player, ChallengeDataPb data)
         if (isSameEntry)
         {
             // unload stage 1 groups, load stage 2 groups
-            await Player.SceneInstance!.EntityLoader!.UnloadGroup(Config.MazeGroupID1, sendPacket: false);
-            await Player.SceneInstance!.EntityLoader!.LoadGroup(Config.MazeGroupID2, sendPacket: false);
+            await Player.SceneInstance!.EntityLoader!.UnloadGroup(Config.MazeGroupID1, sendPacket: true);
+            await Player.SceneInstance!.EntityLoader!.LoadGroup(Config.MazeGroupID2, sendPacket: true);
         }
 
         // Change player line up
         SetCurrentExtraLineup(ExtraLineupType.LineupChallenge2);
         await Player.LineupManager!.SetExtraLineup((ExtraLineupType)GetCurrentExtraLineupType(), notify: false);
+        await Player.SendPacket(new PacketChallengeLineupNotify((ExtraLineupType)GetCurrentExtraLineupType()));
         await Player.SceneInstance!.SyncLineup();
 
         Data.Boss.SavedMp = (uint)Player.LineupManager.GetCurLineup()!.Mp;

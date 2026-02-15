@@ -14,7 +14,7 @@ public class PacketGetCurChallengeScRsp : BasePacket
         if (player.ChallengeManager!.ChallengeInstance is BaseLegacyChallengeInstance inst)
         {
             proto.CurChallenge = inst.ToProto();
-            player.LineupManager!.SetExtraLineup((ExtraLineupType)inst.GetCurrentExtraLineupType()).GetAwaiter().GetResult();
+            player.LineupManager!.SetExtraLineup((ExtraLineupType)inst.GetCurrentExtraLineupType(), notify: false).GetAwaiter().GetResult();
             var proto1 = player.LineupManager?.GetExtraLineup(ExtraLineupType.LineupChallenge)?.ToProto();
             if (proto1 != null)
                 proto.LineupList.Add(proto1);

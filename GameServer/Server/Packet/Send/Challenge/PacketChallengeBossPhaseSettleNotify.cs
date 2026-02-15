@@ -6,7 +6,8 @@ namespace HyacineCore.Server.GameServer.Server.Packet.Send.Challenge;
 
 public class PacketChallengeBossPhaseSettleNotify : BasePacket
 {
-    public PacketChallengeBossPhaseSettleNotify(ChallengeBossInstance challenge, BattleTargetList? targetLists = null) :
+    public PacketChallengeBossPhaseSettleNotify(ChallengeBossInstance challenge, BattleTargetList? targetLists = null,
+        bool isReward = true) :
         base(CmdIds
             .ChallengeBossPhaseSettleNotify)
     {
@@ -18,7 +19,7 @@ public class PacketChallengeBossPhaseSettleNotify : BasePacket
             ScoreTwo = challenge.Data.Boss.ScoreStage2,
             Star = challenge.Data.Boss.Stars,
             Phase = (uint)challenge.Data.Boss.CurrentStage,
-            IsReward = true
+            IsReward = isReward
         };
 
         proto.BattleTargetList.AddRange(targetLists?.BattleTargetList_ ?? []);

@@ -286,7 +286,7 @@ public class ChallengePeakManager(PlayerInstance player) : BasePlayerManager(pla
         Player.ChallengeManager!.ChallengeInstance = instance;
 
         // Set first lineup before we enter scenes
-        await Player.LineupManager!.SetExtraLineup((ExtraLineupType)instance.Data.Peak.CurrentExtraLineup);
+        await Player.LineupManager!.SetExtraLineup((ExtraLineupType)instance.Data.Peak.CurrentExtraLineup, notify: false);
 
         // Enter scene
         try

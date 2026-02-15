@@ -28,11 +28,14 @@ public class PacketStartChallengeScRsp : BasePacket
                 proto.CurChallenge = inst.ToProto();
                 proto.StageInfo = inst.ToStageInfo();
 
-                // LunarCore compatibility: ensure nested boss nodes exist (some clients assume non-null submessages)
-                proto.StageInfo ??= new ChallengeStageInfo();
-                proto.StageInfo.BossInfo ??= new ChallengeBossInfo();
-                proto.StageInfo.BossInfo.FirstNode ??= new ChallengeBossSingleNodeInfo();
-                proto.StageInfo.BossInfo.SecondNode ??= new ChallengeBossSingleNodeInfo();
+                // Only boss challenge should carry boss node payload.
+                if (inst is not null && inst.Config.IsBoss())
+                {
+                    proto.StageInfo ??= new ChallengeStageInfo();
+                    proto.StageInfo.BossInfo ??= new ChallengeBossInfo();
+                    proto.StageInfo.BossInfo.FirstNode ??= new ChallengeBossSingleNodeInfo();
+                    proto.StageInfo.BossInfo.SecondNode ??= new ChallengeBossSingleNodeInfo();
+                }
             }
 
             proto.LineupList.Add(player.LineupManager!.GetExtraLineup(ExtraLineupType.LineupChallenge)!.ToProto());

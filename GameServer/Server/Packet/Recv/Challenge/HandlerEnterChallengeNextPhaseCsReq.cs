@@ -30,14 +30,7 @@ public class HandlerEnterChallengeNextPhaseCsReq : Handler
             return;
         }
 
-        if (challenge is ChallengeMemoryInstance or ChallengeStoryInstance)
-        {
-            // Memory/Story already switch stage server-side when stage 1 battle settles.
-            // Reply with current scene so client can continue to stage 2 flow.
-            await connection.SendPacket(new PacketEnterChallengeNextPhaseScRsp(connection.Player));
-            return;
-        }
-
+        // MOC/PF switch phase silently by server; this request path is AS-only.
         await connection.SendPacket(new PacketEnterChallengeNextPhaseScRsp(Retcode.RetChallengeNotDoing));
     }
 }
