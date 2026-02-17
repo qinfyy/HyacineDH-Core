@@ -12,8 +12,6 @@ namespace HyacineCore.Server.Util
 
         public static bool IsCommandValid { get; private set; } = true;
         private const int HistoryMaxCount = 10;
-        
-        public static readonly object ConsoleLock = new();
 
         public static List<char> Input { get; set; } = [];
         private static int CursorIndex { get; set; }
@@ -22,49 +20,23 @@ namespace HyacineCore.Server.Util
 
         public static event Action<string>? OnConsoleExcuteCommand;
 
-        public static bool ForceDisable { get; set; } = false;
-
-        private static bool? _isConsoleAvailable;
         public static bool IsConsoleAvailable
         {
             get
             {
-                if (ForceDisable) return false;
-                if (_isConsoleAvailable.HasValue) return _isConsoleAvailable.Value;
-
                 try
                 {
-                    // Check TERM environment variable
-                    var term = Environment.GetEnvironmentVariable("TERM");
-                    if (string.IsNullOrEmpty(term) || term == "dumb")
-                    {
-                        _isConsoleAvailable = false;
-                        return false;
-                    }
-
                     _ = Environment.UserInteractive;
                     if (Console.IsInputRedirected || Console.IsOutputRedirected || Console.IsErrorRedirected)
-                    {
-                        _isConsoleAvailable = false;
                         return false;
-                    }
 
-                    // On Linux/Unix, WindowWidth might be 0 or throw if no TTY
-                    if (Console.WindowWidth <= 0 || Console.BufferWidth <= 0)
-                    {
-                         _isConsoleAvailable = false;
-                         return false;
-                    }
-
-                    // Verify cursor position check removed to prevent blocking
-                    // _ = Console.CursorTop;
-                    
-                    _isConsoleAvailable = true;
+                    _ = Console.BufferWidth;
+                    _ = Console.CursorTop;
+                    _ = Console.GetCursorPosition();
                     return true;
                 }
                 catch
                 {
-                    _isConsoleAvailable = false;
                     return false;
                 }
             }
@@ -86,41 +58,23 @@ namespace HyacineCore.Server.Util
         {
             if (!IsConsoleAvailable) return;
 
-            lock (ConsoleLock)
+            // check validity
+            UpdateCommandValidity(input);
+
+            var length = GetWidth(input);
+            if (hasPrefix)
             {
-                // check validity
-                UpdateCommandValidity(input);
-
-                var inputStr = input;
-                if (hasPrefix)
-                {
-                    inputStr = Prefix + input;
-                }
-                
-                var totalWidth = GetWidth(inputStr);
-                var cursorEffectiveIndex = CursorIndex + (hasPrefix ? GetWidth(PrefixContent) : 0);
-
-                // Use Carriage Return to reset, print line, clear trailing, reset again, then move right
-                // 1. Carriage Return
-                Console.Write('\r');
-                // 2. Write Input
-                Console.Write(inputStr);
-                // 3. Clear remaining (Safety buffer)
-                var clearLen = Console.BufferWidth - totalWidth - 1;
-                if (clearLen > 0) Console.Write(new string(' ', clearLen));
-                
-                // 4. Move Cursor to correct position
-                // Since we are maybe at the end or somewhere else, let's reset to \r and move forward
-                Console.Write('\r');
-                if (cursorEffectiveIndex > 0) 
-                {
-                    // Use ANSI move right if possible, or just re-print the substring up to cursor? 
-                    // Re-printing is safest cross-platform without ANSI acting weird if Term is dumb
-                    // But we used colors so ANSI is likely supported.
-                    // \x1b[{n}C is Move Right n
-                    Console.Write($"\x1b[{cursorEffectiveIndex}C");
-                }
+                input = Prefix + input;
+                length += GetWidth(PrefixContent);
             }
+
+            var (left, _) = Console.GetCursorPosition();
+            if (left > 0) Console.SetCursorPosition(0, Console.CursorTop);
+
+            Console.Write(input + new string(' ', Console.BufferWidth - length));
+
+            Console.SetCursorPosition(length, Console.CursorTop);
+            CursorIndex = length - GetWidth(PrefixContent);
         }
 
         // check validity and update
@@ -133,136 +87,131 @@ namespace HyacineCore.Server.Util
 
         public static void HandleEnter()
         {
-            string cmdToRun = null;
-            lock (ConsoleLock)
-            {
-                var input = new string([.. Input]);
-                if (string.IsNullOrWhiteSpace(input)) return;
+            var input = new string([.. Input]);
+            if (string.IsNullOrWhiteSpace(input)) return;
 
-                // New line
-                Console.WriteLine();
-                Input = [];
-                CursorIndex = 0;
-                if (InputHistory.Count >= HistoryMaxCount)
-                    InputHistory.RemoveAt(0);
-                InputHistory.Add(input);
-                HistoryIndex = InputHistory.Count;
+            // New line
+            Console.WriteLine();
+            Input = [];
+            CursorIndex = 0;
+            if (InputHistory.Count >= HistoryMaxCount)
+                InputHistory.RemoveAt(0);
+            InputHistory.Add(input);
+            HistoryIndex = InputHistory.Count;
 
-                // Handle command
-                if (input.StartsWith('/')) input = input[1..].Trim();
-                cmdToRun = input;
+            // Handle command
+            if (input.StartsWith('/')) input = input[1..].Trim();
+            OnConsoleExcuteCommand?.Invoke(input);
 
-                // reset
-                IsCommandValid = true;
-            }
-            
-            if (cmdToRun != null)
-                OnConsoleExcuteCommand?.Invoke(cmdToRun);
+            // reset
+            IsCommandValid = true;
         }
 
         public static void HandleBackspace()
         {
-            lock (ConsoleLock)
-            {
-                if (CursorIndex <= 0) return;
-                
-                // Safety check
-                if (CursorIndex > Input.Count) CursorIndex = Input.Count;
-                
-                CursorIndex--;
-                Input.RemoveAt(CursorIndex);
+            if (CursorIndex <= 0) return;
+            CursorIndex--;
+            var targetWidth = GetWidth(Input[CursorIndex].ToString());
+            Input.RemoveAt(CursorIndex);
 
-                // Full redraw is safer than partial differential updates that require cursor reads
+            var (left, _) = Console.GetCursorPosition();
+            Console.SetCursorPosition(left - targetWidth, Console.CursorTop);
+            var remain = new string([.. Input.Skip(CursorIndex)]);
+            Console.Write(remain + new string(' ', targetWidth));
+            Console.SetCursorPosition(left - targetWidth, Console.CursorTop);
+
+            // update
+            var prev = IsCommandValid;
+            UpdateCommandValidity(new string([.. Input]));
+
+            if (IsCommandValid != prev)
+            {
                 RedrawInput(Input);
             }
         }
 
         public static void HandleUpArrow()
         {
-            lock (ConsoleLock)
-            {
-                if (InputHistory.Count == 0) return;
-                if (HistoryIndex <= 0) return;
+            if (InputHistory.Count == 0) return;
+            if (HistoryIndex <= 0) return;
 
-                HistoryIndex--;
-                var history = InputHistory[HistoryIndex];
-                Input = [.. history];
-                CursorIndex = Input.Count;
+            HistoryIndex--;
+            var history = InputHistory[HistoryIndex];
+            Input = [.. history];
+            CursorIndex = Input.Count;
 
-                // update
-                UpdateCommandValidity(history);
-                RedrawInput(Input);
-            }
+            // update
+            UpdateCommandValidity(history);
+            RedrawInput(Input);
         }
 
         public static void HandleDownArrow()
         {
-            lock (ConsoleLock)
-            {
-                if (HistoryIndex >= InputHistory.Count) return;
+            if (HistoryIndex >= InputHistory.Count) return;
 
-                HistoryIndex++;
-                if (HistoryIndex >= InputHistory.Count)
-                {
-                    HistoryIndex = InputHistory.Count;
-                    Input = [];
-                    CursorIndex = 0;
-                    IsCommandValid = true;
-                }
-                else
-                {
-                    var history = InputHistory[HistoryIndex];
-                    Input = [.. history];
-                    CursorIndex = Input.Count;
-                    // update
-                    UpdateCommandValidity(history);
-                }
-                RedrawInput(Input);
+            HistoryIndex++;
+            if (HistoryIndex >= InputHistory.Count)
+            {
+                HistoryIndex = InputHistory.Count;
+                Input = [];
+                CursorIndex = 0;
+                IsCommandValid = true;
             }
+            else
+            {
+                var history = InputHistory[HistoryIndex];
+                Input = [.. history];
+                CursorIndex = Input.Count;
+                // update
+                UpdateCommandValidity(history);
+            }
+            RedrawInput(Input);
         }
 
         public static void HandleLeftArrow()
         {
-            lock (ConsoleLock)
-            {
-                if (CursorIndex <= 0) return;
-                CursorIndex--;
-                RedrawInput(Input);
-            }
+            if (CursorIndex <= 0) return;
+
+            var (left, _) = Console.GetCursorPosition();
+            CursorIndex--;
+            Console.SetCursorPosition(left - GetWidth(Input[CursorIndex].ToString()), Console.CursorTop);
         }
 
         public static void HandleRightArrow()
         {
-            lock (ConsoleLock)
-            {
-                if (CursorIndex >= Input.Count) return;
-                CursorIndex++;
-                RedrawInput(Input);
-            }
+            if (CursorIndex >= Input.Count) return;
+
+            var (left, _) = Console.GetCursorPosition();
+            CursorIndex++;
+            Console.SetCursorPosition(left + GetWidth(Input[CursorIndex - 1].ToString()), Console.CursorTop);
         }
 
         public static void HandleInput(ConsoleKeyInfo keyInfo)
         {
-            lock (ConsoleLock)
-            {
-                 if (char.IsControl(keyInfo.KeyChar)) return;
-                 var newWidth = GetWidth(new string([.. Input])) + GetWidth(keyInfo.KeyChar.ToString());
-                 if (newWidth >= (Console.BufferWidth - GetWidth(PrefixContent))) return;
-                 HandleInput(keyInfo.KeyChar);
-            }
+            if (char.IsControl(keyInfo.KeyChar)) return;
+            var newWidth = GetWidth(new string([.. Input])) + GetWidth(keyInfo.KeyChar.ToString());
+            if (newWidth >= (Console.BufferWidth - GetWidth(PrefixContent))) return;
+            HandleInput(keyInfo.KeyChar);
         }
 
         public static void HandleInput(char keyChar)
         {
-            lock (ConsoleLock)
-            {
-                // Crash fix: Bounds check
-                if (CursorIndex < 0) CursorIndex = 0;
-                if (CursorIndex > Input.Count) CursorIndex = Input.Count;
-                
-                Input.Insert(CursorIndex, keyChar);
-                CursorIndex++;
+            Input.Insert(CursorIndex, keyChar);
+            CursorIndex++;
 
+            var (left, _) = Console.GetCursorPosition();
+            var newCursor = left + GetWidth(keyChar.ToString());
+            if (newCursor > Console.BufferWidth - 1) newCursor = Console.BufferWidth - 1;
+
+            Console.Write(new string([.. Input.Skip(CursorIndex - 1)]));
+            Console.SetCursorPosition(newCursor, Console.CursorTop);
+
+            // update
+            var prev = IsCommandValid;
+            UpdateCommandValidity(new string([.. Input]));
+
+            if (IsCommandValid != prev)
+            {
                 RedrawInput(Input);
             }
         }
