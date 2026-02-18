@@ -1,11 +1,14 @@
-﻿using HyacineCore.Server.Internationalization;
+using HyacineCore.Server.Internationalization;
 using HyacineCore.Server.Kcp;
+using HyacineCore.Server.Util;
 
 namespace HyacineCore.Server.Command.Command.Cmd;
 
 [CommandInfo("windy", "Game.Command.Windy.Desc", "/windy <lua>")]
 public class CommandWindy : ICommand
 {
+    private const string LuaDirectoryName = "Lua";
+
     [CommandDefault]
     public async ValueTask Windy(CommandArg arg)
     {
@@ -15,7 +18,8 @@ public class CommandWindy : ICommand
             return;
         }
 
-        var filePath = Path.Combine(Environment.CurrentDirectory, "Lua", arg.Raw);
+        var filePath = Path.Combine(Environment.CurrentDirectory, ConfigManager.Config.Path.ConfigPath,
+            LuaDirectoryName, arg.Raw);
         if (File.Exists(filePath))
         {
             var fileBytes = await File.ReadAllBytesAsync(filePath);

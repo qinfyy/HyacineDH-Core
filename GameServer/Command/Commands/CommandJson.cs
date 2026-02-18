@@ -11,9 +11,11 @@ using HyacineCore.Server.Util;
 
 namespace HyacineCore.Server.Command.Command.Cmd;
 
-[CommandInfo("json", "Game.Command.Json.Desc", "/json [路径/数字/clear] - 从 freesr-data.json 导入角色/光锥/遗器数据")]
+[CommandInfo("json", "Game.Command.Json.Desc", "Game.Command.Json.Usage")]
 public class CommandJson : ICommand
 {
+    private const string JsonDirectoryRelativePath = "Config/Json";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -21,27 +23,12 @@ public class CommandJson : ICommand
         AllowTrailingCommas = true
     };
 
-    private static IEnumerable<DirectoryInfo> GetFreeSrDataDirectories()
+    private static DirectoryInfo GetJsonDirectory(bool createIfMissing = false)
     {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        IEnumerable<DirectoryInfo> AddCandidateBase(string? baseDir)
-        {
-            if (string.IsNullOrWhiteSpace(baseDir)) yield break;
-            var cur = new DirectoryInfo(baseDir);
-            for (var i = 0; i < 8 && cur.Exists; i++)
-            {
-                var candidate = new DirectoryInfo(Path.Combine(cur.FullName, "freesr-data"));
-                if (candidate.Exists && seen.Add(candidate.FullName))
-                    yield return candidate;
-
-                cur = cur.Parent;
-                if (cur == null) break;
-            }
-        }
-
-        foreach (var d in AddCandidateBase(Environment.CurrentDirectory)) yield return d;
-        foreach (var d in AddCandidateBase(AppContext.BaseDirectory)) yield return d;
+        var dir = new DirectoryInfo(Path.GetFullPath(JsonDirectoryRelativePath));
+        if (createIfMissing && !dir.Exists)
+            dir.Create();
+        return dir;
     }
 
     [CommandDefault]
@@ -70,7 +57,7 @@ public class CommandJson : ICommand
                 await player.SendPacket(new PacketPlayerSyncScNotify(removedItems));
 
             DatabaseHelper.ToSaveUidList.SafeAdd(player.Uid);
-            await arg.SendMsg("已清空玩家库存中的光锥和遗器");
+            await arg.SendMsg(I18NManager.Translate("Game.Command.Json.ClearInventory"));
             return;
         }
 
@@ -84,7 +71,7 @@ public class CommandJson : ICommand
 
         if (!File.Exists(selectedPath))
         {
-            await arg.SendMsg($"未找到文件：{selectedPath}");
+            await arg.SendMsg(I18NManager.Translate("Game.Command.Json.FileNotFound", selectedPath));
             return;
         }
 
@@ -96,13 +83,13 @@ public class CommandJson : ICommand
         }
         catch (Exception e)
         {
-            await arg.SendMsg($"读取或解析 JSON 失败：{e.Message}");
+            await arg.SendMsg(I18NManager.Translate("Game.Command.Json.ReadOrParseFailed", e.Message));
             return;
         }
 
         if (data == null)
         {
-            await arg.SendMsg("JSON 内容为空或格式不正确");
+            await arg.SendMsg(I18NManager.Translate("Game.Command.Json.InvalidJsonContent"));
             return;
         }
 
@@ -122,8 +109,12 @@ public class CommandJson : ICommand
 
         DatabaseHelper.ToSaveUidList.SafeAdd(player.Uid);
 
-        await arg.SendMsg(
-            $"已从 {Path.GetFileName(selectedPath)} 导入：avatar={data.Avatars?.Count ?? 0} relic={data.Relics?.Count ?? 0} lightcone={data.Lightcones?.Count ?? 0}");
+        await arg.SendMsg(I18NManager.Translate(
+            "Game.Command.Json.ImportSummary",
+            Path.GetFileName(selectedPath),
+            (data.Avatars?.Count ?? 0).ToString(),
+            (data.Relics?.Count ?? 0).ToString(),
+            (data.Lightcones?.Count ?? 0).ToString()));
     }
 
     private static string? ResolveInputPath(string input, out string? error)
@@ -135,16 +126,16 @@ public class CommandJson : ICommand
 
         if (int.TryParse(input, out var choice))
         {
-            var files = GetFreeSrDataFiles().OrderBy(f => f.LastWriteTimeUtc).ToList();
+            var files = GetJsonFiles().OrderBy(f => f.LastWriteTimeUtc).ToList();
             if (files.Count == 0)
             {
-                error = "freesr-data 文件夹中未找到含有 freesr-data 的 JSON 文件（提示：默认会在工作目录/程序目录向上查找 freesr-data 文件夹；也可用 /json [绝对路径]）";
+                error = I18NManager.Translate("Game.Command.Json.NoFileFoundWithHint");
                 return null;
             }
 
             if (choice < 1 || choice > files.Count)
             {
-                error = $"无效的选择，请输入 1-{files.Count} 之间的数字";
+                error = I18NManager.Translate("Game.Command.Json.InvalidChoice", files.Count.ToString());
                 return null;
             }
 
@@ -155,63 +146,52 @@ public class CommandJson : ICommand
         if (looksLikePath)
             return Path.GetFullPath(input);
 
-        // Treat as filename under freesr-data folders
+        // Treat as filename under Config/Json
+        var jsonDir = GetJsonDirectory(createIfMissing: true);
         var fileName = input.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ? input : input + ".json";
-        foreach (var dir in GetFreeSrDataDirectories())
-        {
-            var candidate = Path.Combine(dir.FullName, input);
-            if (File.Exists(candidate)) return candidate;
-            candidate = Path.Combine(dir.FullName, fileName);
-            if (File.Exists(candidate)) return candidate;
-        }
+        var candidate = Path.Combine(jsonDir.FullName, input);
+        if (File.Exists(candidate)) return candidate;
+        candidate = Path.Combine(jsonDir.FullName, fileName);
+        if (File.Exists(candidate)) return candidate;
 
-        // Fallback to cwd-relative for old behavior
-        return Path.GetFullPath(Path.Combine("freesr-data", input));
+        // Fallback to the default Json directory.
+        return Path.Combine(jsonDir.FullName, fileName);
     }
 
-    private static List<FileInfo> GetFreeSrDataFiles()
+    private static List<FileInfo> GetJsonFiles()
     {
-        var files = new List<FileInfo>();
-        foreach (var dir in GetFreeSrDataDirectories())
+        var dir = GetJsonDirectory(createIfMissing: true);
+        if (!dir.Exists) return [];
+        try
         {
-            try
-            {
-                files.AddRange(dir.GetFiles("*.json", SearchOption.TopDirectoryOnly)
-                    .Where(f => f.Name.Contains("freesr-data", StringComparison.OrdinalIgnoreCase)));
-            }
-            catch
-            {
-                // ignore
-            }
+            return dir.GetFiles("*.json", SearchOption.TopDirectoryOnly).ToList();
         }
-
-        // de-dup by full path
-        return files
-            .GroupBy(f => f.FullName, StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.First())
-            .ToList();
+        catch
+        {
+            return [];
+        }
     }
 
     private static async ValueTask ShowFileList(CommandArg arg)
     {
-        var files = GetFreeSrDataFiles().OrderBy(f => f.LastWriteTimeUtc).ToList();
+        var files = GetJsonFiles().OrderBy(f => f.LastWriteTimeUtc).ToList();
         if (files.Count == 0)
         {
-            var searched = GetFreeSrDataDirectories().Select(d => d.FullName).Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-            await arg.SendMsg("freesr-data 文件夹中未找到含有 freesr-data 的 JSON 文件");
+            var searched = new List<string> { GetJsonDirectory(createIfMissing: true).FullName };
+            await arg.SendMsg(I18NManager.Translate("Game.Command.Json.NoFileFound"));
             if (searched.Count > 0)
             {
-                await arg.SendMsg("已搜索以下目录：");
-                foreach (var s in searched) await arg.SendMsg($"- {s}");
+                await arg.SendMsg(I18NManager.Translate("Game.Command.Json.SearchedDirectories"));
+                foreach (var s in searched)
+                    await arg.SendMsg(I18NManager.Translate("Game.Command.Json.SearchedDirectoryItem", s));
             }
             return;
         }
 
-        await arg.SendMsg("在 freesr-data 文件夹中找到以下文件：");
+        await arg.SendMsg(I18NManager.Translate("Game.Command.Json.FoundFiles"));
         for (var i = 0; i < files.Count; i++)
-            await arg.SendMsg($"{i + 1}. {files[i].Name}");
-        await arg.SendMsg("使用 /json [数字] 选择文件，或 /json [路径] 指定自定义路径");
+            await arg.SendMsg(I18NManager.Translate("Game.Command.Json.FileListItem", (i + 1).ToString(), files[i].Name));
+        await arg.SendMsg(I18NManager.Translate("Game.Command.Json.UsageSelectHint"));
     }
 
     private static async ValueTask<(List<FormalAvatarInfo> changedAvatars, List<ItemData> removedItems)>
@@ -285,7 +265,7 @@ public class CommandJson : ICommand
 
             if (!GameData.AvatarConfigData.ContainsKey(avatarId))
             {
-                await arg.SendMsg($"未找到角色 Excel：{avatarId}");
+                await arg.SendMsg(I18NManager.Translate("Game.Command.Json.AvatarExcelNotFound", avatarId.ToString()));
                 continue;
             }
 

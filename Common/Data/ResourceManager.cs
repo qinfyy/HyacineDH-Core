@@ -45,15 +45,22 @@ public class ResourceManager
             Logger.Info(I18NManager.Translate("Server.ServerInfo.MissionLoadSkipped"));
         }
 
-        GameData.ActivityConfig = LoadCustomFile<ActivityConfig>("Activity", "ActivityConfig") ?? new ActivityConfig();
-        GameData.BannersConfig = LoadCustomFile<BannersConfig>("Banner", "Banners") ?? new BannersConfig();
+        GameData.ActivityConfig =
+            LoadCustomFile<ActivityConfig>("Activity", "ActivityConfig", ConfigManager.Config.Path.GameDataPath) ??
+            new ActivityConfig();
+        GameData.BannersConfig =
+            LoadCustomFile<BannersConfig>("Banner", "Banners", ConfigManager.Config.Path.GameDataPath) ??
+            new BannersConfig();
         GameData.VideoKeysConfig =
-            LoadCustomFile<VideoKeysConfig>("VideoKeys", "VideoKeysConfig") ?? new VideoKeysConfig();
+            LoadCustomFile<VideoKeysConfig>("VideoKeys", "VideoKeysConfig", ConfigManager.Config.Path.KeyPath) ??
+            new VideoKeysConfig();
         GameData.SceneRainbowGroupPropertyData =
             LoadCustomFile<SceneRainbowGroupPropertyConfig>("Scene Rainbow Group Property",
-                "SceneRainbowGroupProperty") ?? new SceneRainbowGroupPropertyConfig();
+                "SceneRainbowGroupProperty", ConfigManager.Config.Path.GameDataPath) ??
+            new SceneRainbowGroupPropertyConfig();
         GameData.ChallengePeakOverrideConfig =
-            LoadCustomFile<ChallengePeakOverrideConfig>("ChallengePeak", "ChallengePeak") ??
+            LoadCustomFile<ChallengePeakOverrideConfig>("ChallengePeak", "ChallengePeak",
+                ConfigManager.Config.Path.GameDataPath) ??
             new ChallengePeakOverrideConfig();
         ApplyChallengePeakOverrideConfig(GameData.ChallengePeakOverrideConfig);
 
@@ -356,15 +363,17 @@ public class ResourceManager
             I18NManager.Translate("Word.MissionInfo")));
     }
 
-    public static T? LoadCustomFile<T>(string filetype, string filename)
+    public static T? LoadCustomFile<T>(string filetype, string filename, string? folderPath = null)
     {
         Logger.Info(I18NManager.Translate("Server.ServerInfo.LoadingItem", filetype));
-        FileInfo file = new(ConfigManager.Config.Path.ConfigPath + $"/{filename}.json");
+        var basePath = string.IsNullOrWhiteSpace(folderPath) ? ConfigManager.Config.Path.ConfigPath : folderPath;
+        var filePath = Path.Combine(basePath, $"{filename}.json");
+        FileInfo file = new(filePath);
         T? customFile = default;
         if (!file.Exists)
         {
             Logger.Warn(I18NManager.Translate("Server.ServerInfo.ConfigMissing", filetype,
-                $"{ConfigManager.Config.Path.ConfigPath}/{filename}.json", filetype));
+                filePath, filetype));
             return customFile;
         }
 

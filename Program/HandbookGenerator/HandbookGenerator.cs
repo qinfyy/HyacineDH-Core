@@ -10,11 +10,13 @@ namespace HyacineCore.Server.Program.Handbook;
 
 public static class HandbookGenerator
 {
+    private const string HandbookDirectoryPath = "Config/Handbook";
+
     public static void GenerateAll()
     {
         var config = ConfigManager.Config;
         var directory = new DirectoryInfo(config.Path.ResourcePath + "/TextMap");
-        var handbook = new DirectoryInfo("GM Handbook");
+        var handbook = new DirectoryInfo(HandbookDirectoryPath);
         if (!handbook.Exists)
             handbook.Create();
         if (!directory.Exists)
@@ -26,7 +28,7 @@ public static class HandbookGenerator
             var lang = langFile.Name.Replace("TextMap", "").Replace(".json", "");
 
             // Check if handbook needs to regenerate
-            var handbookPath = $"GM Handbook/GM Handbook {lang}.txt";
+            var handbookPath = $"{HandbookDirectoryPath}/GM Handbook {lang}.txt";
             if (File.Exists(handbookPath))
             {
                 var handbookInfo = new FileInfo(handbookPath);
@@ -383,7 +385,7 @@ public static class HandbookGenerator
 
     public static void WriteToFile(string lang, string content)
     {
-        File.WriteAllText($"GM Handbook/GM Handbook {lang}.txt", content);
+        File.WriteAllText($"{HandbookDirectoryPath}/GM Handbook {lang}.txt", content);
     }
 
 #if DEBUG

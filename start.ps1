@@ -25,27 +25,6 @@ function Ensure-Dir([string]$Path) {
 # Ensure required directories
 Ensure-Dir "Config"
 Ensure-Dir "Config/Database"
-Ensure-Dir "Logs"
-Ensure-Dir "Plugins"
-
-# Copy default config files from Configs -> Config on first run
-if (Test-Path "Configs") {
-    $defaults = @(
-        "ServerConfig.json",
-        "ActivityConfig.json",
-        "Banners.json",
-        "Hotfix.json"
-    )
-
-    foreach ($name in $defaults) {
-        $src = Join-Path "Configs" $name
-        $dst = Join-Path "Config" $name
-        if ((Test-Path $src) -and (-not (Test-Path $dst))) {
-            Copy-Item $src $dst -Force
-            Write-Host "Copied default config: Config/$name"
-        }
-    }
-}
 
 # Build
 if (-not $NoBuild) {

@@ -56,9 +56,11 @@ public class PathConfig
 {
     public string ResourcePath { get; set; } = "Resources";
     public string ConfigPath { get; set; } = "Config";
+    public string GameDataPath { get; set; } = "Config/GameData";
+    public string KeyPath { get; set; } = "Config/Keys";
     public string DatabasePath { get; set; } = "Config/Database";
-    public string LogPath { get; set; } = "Logs";
-    public string PluginPath { get; set; } = "Plugins";
+    public string LogPath { get; set; } = "Config/Logs";
+    public string PluginPath { get; set; } = "Config/Plugins";
 }
 
 public class DatabaseConfig
@@ -119,7 +121,7 @@ public class WelcomeMailReward
 public class ChallengePeakOption
 {
     // 0 = auto select by progress; 1~4 = force selected group.
-    public uint SelectedGroupId { get; set; } = 0;
+    public uint SelectedGroupId { get; set; } = 4;
 }
 
 public class ServerConfig

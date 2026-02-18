@@ -2,7 +2,7 @@
 
 **__项目开发中__**
 
-[EN](Docs/README_en-US.md) | [繁中](Docs/README_zh-CN.md) | [JP](Docs/README_ja-JP.md)
+[EN](Docs/README_en-US.md) | [繁中](Docs/README_zh-TW.md) | [JP](Docs/README_ja-JP.md)
 
 ## 📖介绍
 特征：支持游戏的4.0版本

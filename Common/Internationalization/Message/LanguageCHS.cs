@@ -118,6 +118,8 @@ public class CommandTextCHS
     public GiveAllTextCHS GiveAll { get; } = new();
     public LineupTextCHS Lineup { get; } = new();
     public HelpTextCHS Help { get; } = new();
+    public ClearTextCHS Clear { get; } = new();
+    public DebugTextCHS Debug { get; } = new();
     public JsonTextCHS Json { get; } = new();
     public WindyTextCHS Windy { get; } = new();
     public KickTextCHS Kick { get; } = new();
@@ -377,11 +379,53 @@ public class ReloadTextCHS
 }
 
 /// <summary>
+///     path: Game.Command.Clear
+/// </summary>
+public class ClearTextCHS
+{
+    public string Desc => "清理玩家库存中未装备的光锥或遗器";
+    public string Usage => "用法：/clear equipment\n\n用法：/clear relic";
+    public string ClearEquipment => "已清理 {0} 个未装备光锥";
+    public string ClearRelic => "已清理 {0} 个未装备遗器";
+}
+
+/// <summary>
+///     path: Game.Command.Debug
+/// </summary>
+public class DebugTextCHS
+{
+    public string Desc => "调试命令集合：设置下一场战斗关卡/怪物，或加载自定义封包队列";
+    public string Usage =>
+        "用法：/debug specific [关卡ID]\n\n用法：/debug monster [怪物ID]\n\n用法：/debug customP [封包JSON路径]";
+    public string InvalidStageId => "无效的关卡或怪物ID!";
+    public string SetStageId => "已设置调试战斗参数";
+    public string CustomPacketFileNotFound => "自定义封包文件不存在!";
+    public string CustomPacketFileInvalid => "自定义封包文件无效或队列为空!";
+    public string CustomPacketFileLoaded => "自定义封包队列加载成功!";
+}
+
+/// <summary>
 ///     path: Game.Command.Json
 /// </summary>
 public class JsonTextCHS
 {
-    public string Desc => "从 freesr-data.json 导入角色/光锥/遗器数据（用于快速同步练度）";
+    public string Desc => "从 Config/Json 下的 JSON 导入角色/光锥/遗器数据（用于快速同步练度）";
+    public string Usage => "用法：/json [路径/数字/clear]";
+    public string ClearInventory => "已清空玩家库存中的光锥和遗器";
+    public string FileNotFound => "未找到文件：{0}";
+    public string ReadOrParseFailed => "读取或解析 JSON 失败：{0}";
+    public string InvalidJsonContent => "JSON 内容为空或格式不正确";
+    public string ImportSummary => "已从 {0} 导入：avatar={1} relic={2} lightcone={3}";
+    public string NoFileFoundWithHint =>
+        "Config/Json 目录中未找到 JSON 文件（提示：可用 /json [绝对路径] 指定自定义路径）";
+    public string InvalidChoice => "无效的选择，请输入 1-{0} 之间的数字";
+    public string NoFileFound => "Config/Json 目录中未找到 JSON 文件";
+    public string SearchedDirectories => "已搜索以下目录：";
+    public string SearchedDirectoryItem => "- {0}";
+    public string FoundFiles => "在 Config/Json 目录中找到以下文件：";
+    public string FileListItem => "{0}. {1}";
+    public string UsageSelectHint => "使用 /json [数字] 选择文件，或 /json [路径] 指定自定义路径";
+    public string AvatarExcelNotFound => "未找到角色 Excel：{0}";
 }
 
 /// <summary>
@@ -389,7 +433,7 @@ public class JsonTextCHS
 /// </summary>
 public class WindyTextCHS
 {
-    public string Desc => "向客户端发送 Lua 字节码（调试用）。客户端将读取 Lua/<文件名> 的编译结果";
+    public string Desc => "向客户端发送 Lua 字节码（调试用）。客户端将读取 Config/Lua/<文件名> 的编译结果";
 }
 
 /// <summary>
@@ -524,4 +568,5 @@ public class GridTextCHS
 #endregion
 
 #endregion
+
 

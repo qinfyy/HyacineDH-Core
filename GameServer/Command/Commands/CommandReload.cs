@@ -2,6 +2,7 @@
 using HyacineCore.Server.Data.Custom;
 using HyacineCore.Server.GameServer.Plugin;
 using HyacineCore.Server.Internationalization;
+using HyacineCore.Server.Util;
 
 namespace HyacineCore.Server.Command.Command.Cmd;
 
@@ -13,7 +14,8 @@ public class CommandReload : ICommand
     {
         // Reload the banners
         GameData.BannersConfig =
-            ResourceManager.LoadCustomFile<BannersConfig>("Banner", "Banners") ?? new BannersConfig();
+            ResourceManager.LoadCustomFile<BannersConfig>("Banner", "Banners", ConfigManager.Config.Path.GameDataPath)
+            ?? new BannersConfig();
         await arg.SendMsg(I18NManager.Translate("Game.Command.Reload.ConfigReloaded",
             I18NManager.Translate("Word.Banner")));
     }
@@ -22,8 +24,10 @@ public class CommandReload : ICommand
     public async ValueTask ReloadActivity(CommandArg arg)
     {
         // Reload the activities
-        GameData.ActivityConfig = ResourceManager.LoadCustomFile<ActivityConfig>("Activity", "ActivityConfig") ??
-                                  new ActivityConfig();
+        GameData.ActivityConfig =
+            ResourceManager.LoadCustomFile<ActivityConfig>("Activity", "ActivityConfig",
+                ConfigManager.Config.Path.GameDataPath) ??
+            new ActivityConfig();
         await arg.SendMsg(I18NManager.Translate("Game.Command.Reload.ConfigReloaded",
             I18NManager.Translate("Word.Activity")));
     }
@@ -32,8 +36,10 @@ public class CommandReload : ICommand
     public async ValueTask ReloadVideoKey(CommandArg arg)
     {
         // Reload the videokeys
-        GameData.VideoKeysConfig = ResourceManager.LoadCustomFile<VideoKeysConfig>("VideoKeys", "VideoKeysConfig") ??
-                                   new VideoKeysConfig();
+        GameData.VideoKeysConfig =
+            ResourceManager.LoadCustomFile<VideoKeysConfig>("VideoKeys", "VideoKeysConfig",
+                ConfigManager.Config.Path.KeyPath) ??
+            new VideoKeysConfig();
         await arg.SendMsg(I18NManager.Translate("Game.Command.Reload.ConfigReloaded",
             I18NManager.Translate("Word.VideoKeys")));
     }

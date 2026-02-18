@@ -115,6 +115,9 @@ public class EntryPoint
         try
         {
             ConfigManager.LoadConfig();
+            Directory.CreateDirectory(ConfigManager.Config.Path.GameDataPath);
+            Directory.CreateDirectory(ConfigManager.Config.Path.KeyPath);
+            Directory.CreateDirectory(Path.Combine(ConfigManager.Config.Path.ConfigPath, "Json"));
         }
         catch (Exception e)
         {
@@ -190,6 +193,8 @@ public class EntryPoint
                         Logger.Info(I18NManager.Translate("Server.ServerInfo.LoadingItem",
                             I18NManager.Translate("Word.Cache")));
                         isCache = ResourceCache.LoadCache();
+                        if (isCache)
+                            GameConstants.RefreshChallengePeakTargetEntriesFromResource();
 
                         // Clear all game data if cache loading fails
                         if (!isCache)

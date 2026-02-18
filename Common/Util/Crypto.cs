@@ -48,7 +48,7 @@ public class Crypto
 
     public static Ec2b? InitEc2b()
     {
-        var filePath = ConfigManager.Config.Path.ConfigPath + "/ClientSecretKey.ec2b";
+        var filePath = Path.Combine(ConfigManager.Config.Path.KeyPath, "ClientSecretKey.ec2b");
         try
         {
             byte[] ec2bData;

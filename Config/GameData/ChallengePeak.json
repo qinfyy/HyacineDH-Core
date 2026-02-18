@@ -1,0 +1,45 @@
+{
+  "ChallengePeak": [
+    {
+      "group_id": 1,
+      "npc_monster_id_default": 4044010,
+      "stages": {
+        "101": { "npc_monster_id": 3003041, "map_entrance_id": 3013501, "maze_group_id": 8 },
+        "102": { "npc_monster_id": 3014020, "map_entrance_id": 3013501, "maze_group_id": 8 },
+        "103": { "npc_monster_id": 4033030, "map_entrance_id": 3013501, "maze_group_id": 8 },
+        "104": { "npc_monster_id": 4044010, "map_entrance_id": 3013501, "maze_group_id": 8 }
+      }
+    },
+    {
+      "group_id": 2,
+      "npc_monster_id_default": 4015010,
+      "stages": {
+        "201": { "npc_monster_id": 2013020, "map_entrance_id": 3013701, "maze_group_id": 10 },
+        "202": { "npc_monster_id": 2034010, "map_entrance_id": 3013701, "maze_group_id": 10 },
+        "203": { "npc_monster_id": 3003014, "map_entrance_id": 3013701, "maze_group_id": 10 },
+        "204": { "npc_monster_id": 4015010, "map_entrance_id": 3013701, "maze_group_id": 10 }
+      }
+    },
+    {
+      "group_id": 3,
+      "npc_monster_id_default": 4015010,
+      "stages": {
+        "301": { "npc_monster_id": 4053020, "map_entrance_id": 3012302, "maze_group_id": 5 },
+        "302": { "npc_monster_id": 8024011, "map_entrance_id": 3012302, "maze_group_id": 5 },
+        "303": { "npc_monster_id": 4064010, "map_entrance_id": 3012302, "maze_group_id": 5 },
+        "304": { "npc_monster_id": 3025016, "map_entrance_id": 3012302, "maze_group_id": 72 }
+      }
+    },
+    {
+      "group_id": 4,
+      "npc_monster_id_default": 3024030,
+      "stages": {
+        "401": { "npc_monster_id": 3024030, "map_entrance_id": 3014001, "maze_group_id": 7 },
+        "402": { "npc_monster_id": 4034010, "map_entrance_id": 3014001, "maze_group_id": 7 },
+        "403": { "npc_monster_id": 3024020, "map_entrance_id": 3014001, "maze_group_id": 7 },
+        "404": { "npc_monster_id": 5014010, "map_entrance_id": 3014001, "maze_group_id": 7 }
+      }
+    }
+  ]
+}
+

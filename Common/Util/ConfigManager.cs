@@ -7,7 +7,7 @@ namespace HyacineCore.Server.Util;
 public static class ConfigManager
 {
     public static readonly Logger Logger = new("ConfigManager");
-    private static readonly string ConfigFilePath = "Config.json";
+    private static readonly string ConfigFilePath = Path.Combine("Config", "ServerConfig.json");
     private static string HotfixFilePath => Config.Path.ConfigPath + "/Hotfix.json";
     public static ConfigContainer Config { get; private set; } = new();
     public static HotfixContainer Hotfix { get; private set; } = new();
@@ -21,6 +21,17 @@ public static class ConfigManager
     private static void LoadConfigData()
     {
         var file = new FileInfo(ConfigFilePath);
+        if (!file.Exists)
+        {
+            var legacyFile = new FileInfo("Config.json");
+            if (legacyFile.Exists)
+            {
+                if (file.Directory is { Exists: false }) file.Directory.Create();
+                legacyFile.MoveTo(file.FullName, true);
+                file.Refresh();
+            }
+        }
+
         if (!file.Exists)
         {
             Config = new ConfigContainer
@@ -94,6 +105,8 @@ public static class ConfigManager
     private static void SaveData(object data, string path)
     {
         var json = JsonConvert.SerializeObject(data, Formatting.Indented);
+        var file = new FileInfo(path);
+        if (file.Directory is { Exists: false }) file.Directory.Create();
         using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
         using var writer = new StreamWriter(stream);
         writer.Write(json);
